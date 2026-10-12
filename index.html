@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#091226">
+  <title>第一關｜四色密碼鎖</title>
+  <style>
+    :root { color-scheme: dark; --text:#f5f7ff; --muted:#9eabc7; --line:rgba(185,203,255,.18); --panel:#101b32; }
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    body { margin:0; min-height:100svh; color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif; background:radial-gradient(ellipse at 18% 14%,rgba(49,91,183,.28),transparent 42%),radial-gradient(ellipse at 85% 78%,rgba(43,68,115,.35),transparent 45%),#070e1c; display:grid; place-items:center; padding:28px 16px; overflow-x:hidden; }
+    body::before { content:""; position:fixed; inset:0; opacity:.2; pointer-events:none; background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px); background-size:36px 36px; mask-image:linear-gradient(135deg,black,transparent 82%); }
+    main { position:relative; width:min(100%,580px); z-index:1; }
+    .topline { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 8px 20px; font-size:11px; letter-spacing:.19em; text-transform:uppercase; color:#97abd0; font-weight:800; }
+    .live { display:inline-flex; align-items:center; gap:8px; letter-spacing:.08em; }
+    .live::before { content:""; width:7px; height:7px; border-radius:50%; background:#5ddca5; box-shadow:0 0 14px #5ddca5; }
+    .card { position:relative; overflow:hidden; background:linear-gradient(155deg,rgba(22,38,69,.97),rgba(10,20,39,.97)); border:1px solid rgba(181,207,255,.18); border-radius:26px; box-shadow:0 28px 90px rgba(0,0,0,.45),inset 0 1px rgba(255,255,255,.07); padding:clamp(24px,6vw,45px); }
+    .card::before { content:""; position:absolute; top:0; left:14%; right:14%; height:1px; background:linear-gradient(90deg,transparent,#8eacfa,transparent); opacity:.65; }
+    .step { display:inline-flex; align-items:center; gap:9px; color:#a4c1ff; background:rgba(92,135,232,.12); border:1px solid rgba(112,150,241,.2); border-radius:100px; padding:8px 13px; font-size:11px; letter-spacing:.15em; font-weight:800; }
+    h1 { font-size:clamp(31px,6vw,46px); margin:22px 0 10px; letter-spacing:-.04em; line-height:1.2; }
+    .sub { font-size:14px; line-height:1.9; color:var(--muted); margin:0 0 32px; }
+    .digits { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:clamp(8px,2vw,14px); margin:0 0 20px; }
+    .digit { display:flex; flex-direction:column; align-items:center; min-width:0; gap:11px; }
+    .digit input { width:100%; height:clamp(70px,15vw,95px); border:1px solid color-mix(in srgb,var(--accent),transparent 48%); border-radius:16px; color:var(--accent); background:color-mix(in srgb,var(--accent),transparent 91%); font-size:clamp(34px,7.5vw,48px); text-align:center; font-weight:800; outline:0; font-family:inherit; caret-color:var(--accent); box-shadow:inset 0 -3px color-mix(in srgb,var(--accent),transparent 70%),0 0 0 0 transparent; transition:transform .18s,border-color .18s,box-shadow .18s,background .18s; }
+    .digit input:focus { transform:translateY(-4px); border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent),transparent 82%),0 12px 25px color-mix(in srgb,var(--accent),transparent 90%); }
+    .digit small { color:#99a9c7; font-size:11px; letter-spacing:.08em; }
+    .blue { --accent:#4f9bff; } .green { --accent:#4ce1a0; } .yellow { --accent:#f8ce57; } .red { --accent:#ff6977; }
+    .primary { width:100%; padding:17px 20px; margin-top:9px; background:linear-gradient(115deg,#4e89ff,#6e66ec); border:0; border-radius:13px; color:white; font-size:15px; font-weight:800; line-height:1.3; font-family:inherit; letter-spacing:.07em; cursor:pointer; box-shadow:0 9px 25px rgba(55,106,241,.25); transition:transform .15s,filter .15s; }
+    .primary:hover { transform:translateY(-2px); filter:brightness(1.08); } .primary:active { transform:scale(.98); }
+    .primary:focus-visible,.next:focus-visible,.copy:focus-visible { outline:3px solid #c2d6ff; outline-offset:4px; }
+    .status { margin:18px 0 0; min-height:25px; text-align:center; color:#aab9d6; font-size:13px; font-weight:750; letter-spacing:.04em; }
+    .status.error { color:#ff8794; } .status.ok { color:#71f1b9; }
+    .card.wrong { animation:shake .48s cubic-bezier(.36,.07,.19,.97); border-color:rgba(255,111,126,.65); }
+    .card.correct { animation:successPulse .8s ease-out; border-color:rgba(99,245,185,.6); }
+    @keyframes shake { 0%,100% {transform:translateX(0)} 15%,45%,75% {transform:translateX(-9px)} 30%,60%,90% {transform:translateX(9px)} }
+    @keyframes successPulse { 0%{box-shadow:0 28px 90px rgba(0,0,0,.45),0 0 0 0 rgba(99,245,185,.35)} 100%{box-shadow:0 28px 90px rgba(0,0,0,.45),0 0 0 30px rgba(99,245,185,0)} }
+    .footer { text-align:center; margin:20px 0 0; font-size:11px; color:#7587a8; letter-spacing:.12em; }
+    .reveal { opacity:0; transform:translateY(26px) scale(.98); transition:opacity .7s,transform .7s; }
+    .reveal.show { opacity:1; transform:none; }
+    .success-badge { width:68px;height:68px;display:grid;place-items:center;border-radius:50%;background:rgba(55,218,153,.1);border:1px solid rgba(83,236,178,.45);color:#73f1b7;font-size:32px;box-shadow:0 0 40px rgba(47,222,165,.13);animation:pop .6s both; }
+    @keyframes pop { from{transform:scale(.35) rotate(-24deg);opacity:0} 75%{transform:scale(1.15)} to{transform:scale(1);opacity:1} }
+    .reveal h1 { margin:16px 0 8px; } .reveal .sub { margin-bottom:17px; }
+    .board-frame { background:#e3e8ef; padding:12px; border-radius:17px; border:5px solid #9ba9b9; box-shadow:0 12px 30px rgba(0,0,0,.32),inset 0 2px 2px #fff; }
+    .board { display:block; width:100%; border-radius:8px; overflow:hidden; }
+    .instruction { font-weight:750; font-size:15px; color:#e7efff; line-height:1.8; margin:18px 0; text-align:center; }
+    .next { display:flex; align-items:center; justify-content:center; gap:10px; border-radius:13px; background:linear-gradient(115deg,#448dff,#645cf0); color:white; text-decoration:none; font-size:15px; font-weight:850; padding:17px 18px; transition:transform .15s,filter .15s; }
+    .next:hover { transform:translateY(-2px); filter:brightness(1.1); }
+    .url-line { margin-top:13px; display:flex; gap:8px; align-items:center; padding:10px; border:1px solid var(--line); border-radius:10px; }
+    .url-line span { min-width:0; flex:1; overflow-wrap:anywhere; color:#a9bade; font-size:11px; }
+    .copy { flex:none; color:#c4d8ff; background:#223656; border:1px solid #4a6289; border-radius:8px; padding:9px 12px; font:700 12px/1.3 ui-sans-serif,system-ui,sans-serif; cursor:pointer; }
+    .confetti { position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:5; }
+    .piece { position:absolute; left:50%; top:42%; width:7px; height:14px; background:hsl(var(--h),90%,68%); opacity:0; animation:burst 1.35s ease-out forwards; }
+    @keyframes burst { 0%{opacity:1;transform:translate(0,0) rotate(0)} 80%{opacity:1} 100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(var(--r))} }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topline"><span>THE FOUR-COLOR LOCK</span><span class="live">SYSTEM ONLINE</span></div>
+    <section class="card" id="lockCard" aria-labelledby="lockTitle">
+      <div id="lockPanel">
+        <div class="step">▣　LEVEL 01 / 02</div>
+        <h1 id="lockTitle">四色密碼鎖</h1>
+        <p class="sub">四個顏色，四個數字。<br>輸入正確密碼，取得下一個線索。</p>
+        <form id="lockForm" autocomplete="off">
+          <div class="digits" role="group" aria-label="四位數字密碼">
+            <label class="digit blue"><input type="text" inputmode="numeric" maxlength="1" aria-label="第一位，藍色" autocomplete="off" spellcheck="false"><small>01 / BLUE</small></label>
+            <label class="digit green"><input type="text" inputmode="numeric" maxlength="1" aria-label="第二位，綠色" autocomplete="off" spellcheck="false"><small>02 / GREEN</small></label>
+            <label class="digit yellow"><input type="text" inputmode="numeric" maxlength="1" aria-label="第三位，黃色" autocomplete="off" spellcheck="false"><small>03 / YELLOW</small></label>
+            <label class="digit red"><input type="text" inputmode="numeric" maxlength="1" aria-label="第四位，紅色" autocomplete="off" spellcheck="false"><small>04 / RED</small></label>
+          </div>
+          <button class="primary" type="submit">解開密碼鎖　→</button>
+        </form>
+        <p class="status" id="status" role="status" aria-live="polite">等待輸入密碼…</p>
+      </div>
+      <div class="reveal" id="reveal" hidden>
+        <div class="success-badge" aria-hidden="true">✓</div>
+        <div class="step" style="margin-top:17px">✓　LEVEL 01 CLEARED</div>
+        <h1>輸入正確！</h1>
+        <p class="sub">第一道鎖已解除。這是你的下一個線索：</p>
+        <div class="board-frame">
+          <svg class="board" viewBox="0 0 500 305" role="img" aria-label="白板中央有上半部藍色、下半部紅色的長方形；右下方一塊板擦與箭頭示意要將它擦掉。" xmlns="http://www.w3.org/2000/svg">
+            <defs><pattern id="whiteboardDots" width="18" height="18" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".65" fill="#bfc8d2" opacity=".3"/></pattern><linearGradient id="eraser" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#596575"/><stop offset="1" stop-color="#303b4a"/></linearGradient></defs>
+            <rect width="500" height="305" rx="8" fill="#fbfdff"/><rect width="500" height="305" fill="url(#whiteboardDots)"/>
+            <text x="22" y="29" fill="#8793a4" font-size="13" font-weight="700" font-family="sans-serif" letter-spacing="2">WHITEBOARD / ERASE THE MARK</text>
+            <rect x="134" y="64" width="232" height="94" fill="#1475ec"/><rect x="134" y="158" width="232" height="94" fill="#e63948"/>
+            <rect x="134" y="64" width="232" height="188" fill="none" stroke="#1d2939" stroke-opacity=".14" stroke-width="2"/>
+            <path d="M366 108 Q426 106 424 173 T379 244" fill="none" stroke="#758398" stroke-dasharray="6 8" stroke-width="4" stroke-linecap="round"/>
+            <path d="M370 236 l10 9 5 -13" fill="none" stroke="#758398" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <g transform="translate(338,231) rotate(-20)"><rect x="0" y="7" width="112" height="47" rx="12" fill="#b1bfcc" opacity=".18"/><rect x="0" y="0" width="112" height="35" rx="10" fill="url(#eraser)"/><rect x="5" y="26" width="102" height="18" rx="7" fill="#c9d2d9"/><path d="M12 10 H98" stroke="#b0bcc8" stroke-opacity=".5" stroke-width="3" stroke-linecap="round"/></g>
+            <text x="20" y="283" fill="#57687c" font-family="sans-serif" font-size="18" font-weight="800">拿板擦，把圖案擦掉！</text>
+          </svg>
+        </div>
+        <p class="instruction">找到白板上的藍紅長方形，<br>拿起板擦，把它擦掉！</p>
+        <a class="next" href="lock2.html" id="nextLink">取得第二關網址　↗</a>
+        <div class="url-line"><span id="nextUrl"></span><button type="button" class="copy" id="copyBtn">複製網址</button></div>
+      </div>
+    </section>
+    <p class="footer">ESCAPE ROOM　·　01 / 02</p>
+  </main>
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
+  <script>
+    (() => {
+      'use strict';
+      const PASSWORD = '7354';
+      const inputs = Array.from(document.querySelectorAll('.digit input'));
+      const card = document.getElementById('lockCard');
+      const form = document.getElementById('lockForm');
+      const status = document.getElementById('status');
+      const reveal = document.getElementById('reveal');
+      const confetti = document.getElementById('confetti');
+      let unlocked = false;
+      let timer;
+      let resetTimer;
+
+      function setStatus(message, state = '') { status.textContent = message; status.className = 'status ' + state; }
+      function currentCode() { return inputs.map(input => input.value).join(''); }
+      function moveTo(index) { if (inputs[index]) inputs[index].focus(); }
+      function distribute(text, start) {
+        const chars = text.replace(/\D/g, '').slice(0, 4 - start).split('');
+        chars.forEach((ch, i) => { inputs[start + i].value = ch; });
+        moveTo(Math.min(start + chars.length, inputs.length - 1));
+        scheduleCheck();
+      }
+      function scheduleCheck() {
+        clearTimeout(timer);
+        if (currentCode().length === 4) timer = setTimeout(checkCode, 320);
+      }
+      function showError(message) {
+        clearTimeout(resetTimer);
+        card.classList.remove('wrong'); void card.offsetWidth; card.classList.add('wrong');
+        setStatus(message, 'error');
+        resetTimer = setTimeout(() => {
+          if (unlocked) return;
+          inputs.forEach(input => { input.value = ''; });
+          card.classList.remove('wrong');
+          setStatus('再試一次，你一定能解開！');
+          moveTo(0);
+        }, 1100);
+      }
+      function burst() {
+        const colors = [195,142,47,352];
+        for (let i = 0; i < 36; i++) {
+          const piece = document.createElement('i');
+          piece.className = 'piece';
+          const angle = (i / 36) * Math.PI * 2;
+          const dist = 130 + (i % 6) * 32;
+          piece.style.setProperty('--x', Math.cos(angle) * dist + 'px');
+          piece.style.setProperty('--y', Math.sin(angle) * dist - 28 + 'px');
+          piece.style.setProperty('--r', (360 + i * 39) + 'deg');
+          piece.style.setProperty('--h', colors[i % 4]);
+          confetti.appendChild(piece);
+          piece.addEventListener('animationend', () => piece.remove(), {once: true});
+        }
+      }
+      function checkCode() {
+        if (unlocked) return;
+        clearTimeout(timer);
+        const code = currentCode();
+        if (code.length !== 4) { showError('請先輸入完整的四位數字！'); return; }
+        if (code !== PASSWORD) { showError('密碼錯誤！再觀察一下四個顏色。'); return; }
+        unlocked = true;
+        clearTimeout(resetTimer);
+        card.classList.remove('wrong'); card.classList.add('correct');
+        setStatus('✓ 輸入正確！密碼鎖已解開。', 'ok');
+        inputs.forEach(input => input.disabled = true);
+        burst();
+        setTimeout(() => {
+          document.getElementById('lockPanel').hidden = true;
+          reveal.hidden = false;
+          requestAnimationFrame(() => requestAnimationFrame(() => reveal.classList.add('show')));
+        }, 800);
+      }
+      inputs.forEach((input, index) => {
+        input.addEventListener('input', () => {
+          if (unlocked) return;
+          clearTimeout(resetTimer);
+          card.classList.remove('wrong');
+          setStatus('等待確認…');
+          const clean = input.value.replace(/\D/g, '');
+          if (clean.length > 1) { input.value = ''; distribute(clean, index); return; }
+          input.value = clean.slice(-1);
+          if (input.value && index < inputs.length - 1) moveTo(index + 1);
+          scheduleCheck();
+        });
+        input.addEventListener('keydown', event => {
+          if (event.key === 'Backspace' && !input.value && index > 0) { inputs[index - 1].value = ''; moveTo(index - 1); }
+          if (event.key === 'ArrowLeft' && index > 0) { event.preventDefault(); moveTo(index - 1); }
+          if (event.key === 'ArrowRight' && index < inputs.length - 1) { event.preventDefault(); moveTo(index + 1); }
+        });
+        input.addEventListener('paste', event => { event.preventDefault(); distribute(event.clipboardData.getData('text'), index); });
+        input.addEventListener('focus', () => input.select());
+      });
+      form.addEventListener('submit', event => { event.preventDefault(); checkCode(); });
+      const destination = new URL('lock2.html', location.href).href;
+      document.getElementById('nextUrl').textContent = destination;
+      document.getElementById('copyBtn').addEventListener('click', async event => {
+        try {
+          await navigator.clipboard.writeText(destination);
+          event.currentTarget.textContent = '已複製 ✓';
+        } catch (_) { event.currentTarget.textContent = '請手動複製'; }
+      });
+    })();
+  </script>
+</body>
+</html>
